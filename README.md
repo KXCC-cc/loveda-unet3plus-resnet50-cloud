@@ -1,3 +1,11 @@
+# LoveDA U-Net 3+ ResNet50 云端重训快照
+
+本仓库用于在云GPU上重新运行本地RTX 4060 8GB因显存不足而失败的完整ResNet50实验。
+云端环境、数据下载和启动命令见 [CLOUD_TRAINING.md](CLOUD_TRAINING.md)，本地失败记录见
+[docs/LOCAL_OOM_RECORD.md](docs/LOCAL_OOM_RECORD.md)。
+
+---
+
 # LoveDA U-Net 3+：Scratch Baseline 与 ImageNet ResNet Encoder
 
 本项目用于 LoveDA 七分类遥感语义分割。仓库同时保留旧 scratch U-Net 3+
