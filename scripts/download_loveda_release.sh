@@ -8,10 +8,10 @@ ASSET_DIR="dataset_release"
 mkdir -p "$ASSET_DIR"
 
 for suffix in aa ab ac ad ae; do
-  name="loveda_dataset.tar.part-\${suffix}"
-  url="https://github.com/\${REPO}/releases/download/\${TAG}/\${name}"
-  echo "下载 \${name}"
-  curl --fail --location --retry 5 --continue-at - --output "\${ASSET_DIR}/\${name}" "$url"
+  name="loveda_dataset.tar.part-${suffix}"
+  url="https://github.com/${REPO}/releases/download/${TAG}/${name}"
+  echo "下载 ${name}"
+  curl --fail --location --retry 5 --continue-at - --output "${ASSET_DIR}/${name}" "$url"
 done
 
 if [ -f dataset_manifest.sha256 ]; then
@@ -19,5 +19,5 @@ if [ -f dataset_manifest.sha256 ]; then
 fi
 
 echo "解包 LoveDA 数据集到 ./dataset"
-cat "\${ASSET_DIR}"/loveda_dataset.tar.part-* | tar -xf -
+cat "${ASSET_DIR}"/loveda_dataset.tar.part-* | tar -xf -
 echo "数据集准备完成。"
