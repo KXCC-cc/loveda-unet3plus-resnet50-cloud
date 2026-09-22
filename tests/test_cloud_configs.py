@@ -18,6 +18,12 @@ class CloudConfigTests(unittest.TestCase):
         self.assertEqual(config["loss"]["focal_weight"], 0.0)
         self.assertIsNone(config["optimizer"]["differential_lr"])
         self.assertEqual(config["scheduler"].get("warmup_updates", 0), 0)
+        self.assertEqual(config["validation"]["interval_epochs"], 8)
+        self.assertEqual(config["data"]["crop_size"], [512, 512])
+        self.assertEqual(config["model"]["cat_channels"], 64)
+        self.assertEqual(config["data"]["loader"]["batch_size"], 2)
+        self.assertEqual(config["training"]["accumulation_steps"], 8)
+        self.assertEqual(config["training"]["max_iters"], 15000)
 
     def test_multiscale_and_classaware_combination(self):
         config = self._load("resnet50_24gb_multiscale_classaware.yaml")

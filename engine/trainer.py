@@ -212,6 +212,43 @@ def _checkpoint_payload(
     }
 
 
+def _save_epoch_checkpoint(
+    output_dir: Path,
+    model,
+    optimizer,
+    scheduler,
+    scaler,
+    config,
+    generator,
+    epoch: int,
+    micro_step: int,
+    optimizer_step: int,
+    best_miou: float,
+    save_best: bool = False,
+) -> dict:
+    """在完整 epoch 边界保存可恢复状态；验证提升时先写 best，再写 last。"""
+    payload = _checkpoint_payload(
+        model,
+        optimizer,
+        scheduler,
+        scaler,
+        config,
+        generator,
+        epoch,
+        micro_step,
+        optimizer_step,
+        best_miou,
+    )
+    if save_best:
+        save_checkpoint(output_dir / "best_model.pth", payload)
+    save_checkpoint(output_dir / "last_checkpoint.pth", payload)
+    print(
+        f"Saved epoch checkpoint: epoch={epoch}, "
+        f"optimizer={optimizer_step} -> {output_dir / 'last_checkpoint.pth'}"
+    )
+    return payload
+
+
 def _save_fixed_predictions(model, dataset, selected, config, device, output_dir, epoch):
     samples = []
     validation = config["validation"]
@@ -453,6 +490,19 @@ def run_training(config: dict[str, Any], resume: Path | None = None) -> None:
             f"train loss {train_loss:.4f} | {time.perf_counter() - started:.1f}s"
         )
         if not should_validate:
+            _save_epoch_checkpoint(
+                output_dir,
+                raw_model,
+                optimizer,
+                scheduler,
+                scaler,
+                config,
+                generator,
+                epoch,
+                micro_step,
+                optimizer_step,
+                best_miou,
+            )
             continue
 
         val_loss, scores, matrix = evaluate_full_validation(
@@ -478,13 +528,20 @@ def run_training(config: dict[str, Any], resume: Path | None = None) -> None:
         improved = math.isfinite(miou) and miou > best_miou
         if improved:
             best_miou = miou
-        payload = _checkpoint_payload(
-            raw_model, optimizer, scheduler, scaler, config, generator,
-            epoch, micro_step, optimizer_step, best_miou,
+        _save_epoch_checkpoint(
+            output_dir,
+            raw_model,
+            optimizer,
+            scheduler,
+            scaler,
+            config,
+            generator,
+            epoch,
+            micro_step,
+            optimizer_step,
+            best_miou,
+            save_best=improved,
         )
-        save_checkpoint(output_dir / "last_checkpoint.pth", payload)
-        if improved:
-            save_checkpoint(output_dir / "best_model.pth", payload)
         save_confusion_matrix(matrix, output_dir)
         save_training_curves(metrics_path, output_dir / "curves")
 

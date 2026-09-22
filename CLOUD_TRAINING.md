@@ -65,6 +65,18 @@ A100 40GB等更大显存GPU可减少串行梯度累积：
 验证间隔设置为8个数据轮次，约每1260次optimizer update执行一次完整验证，
 避免effective batch增大后仍每2轮验证而明显拖慢训练。
 
+无论本轮是否执行 Full Validation，每个完整 epoch 结束都会原子更新
+`runs/<run>/last_checkpoint.pth`。非验证 epoch 只保存恢复点，不额外运行验证。
+云实例中断后继续同一个 24GB baseline：
+
+```bash
+bash scripts/cloud_train_resnet50_24gb.sh \
+  --resume runs/cloud_resnet50_24gb/last_checkpoint.pth
+```
+
+恢复会从下一个 epoch 开始，并恢复 optimizer update、poly scheduler、AMP scaler、
+best mIoU 与随机状态。
+
 ## 受控消融
 
 完成 baseline 后按顺序运行：
