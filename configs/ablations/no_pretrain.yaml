@@ -1,0 +1,7 @@
+_base_: ../loveda_4060_resnet34.yaml
+run:
+  name: ablation_no_pretrain
+  output_dir: runs/ablation_no_pretrain
+model:
+  pretrained: false
+  weights: IMAGENET1K_V1

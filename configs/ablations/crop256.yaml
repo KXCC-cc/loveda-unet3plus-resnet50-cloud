@@ -1,0 +1,9 @@
+_base_: ../loveda_4060_resnet34.yaml
+run:
+  name: ablation_crop256
+  output_dir: runs/ablation_crop256
+data:
+  crop_size: [256, 256]
+validation:
+  tile_size: [256, 256]
+  stride: [256, 256]

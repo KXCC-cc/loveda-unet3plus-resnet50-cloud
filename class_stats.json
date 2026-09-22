@@ -1,0 +1,109 @@
+{
+  "dataset_root": "/mnt/d/unet3/dataset",
+  "split": "Train",
+  "resolution": "original; no resize, crop or augmentation",
+  "raw_ignore_index": 0,
+  "ignore_index": 255,
+  "class_ids": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "raw_class_ids": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "class_names": [
+    "background",
+    "building",
+    "road",
+    "water",
+    "barren",
+    "forest",
+    "agricultural"
+  ],
+  "frequency_definition": "class_counts[i] / valid_pixels; null if no valid pixels",
+  "domains": {
+    "Rural": {
+      "num_masks": 1366,
+      "total_pixels": 1432354816,
+      "ignored_pixels": 41236648,
+      "valid_pixels": 1391118168,
+      "class_counts": [
+        351704076,
+        36891628,
+        27053972,
+        119674656,
+        45460577,
+        317735062,
+        492598197
+      ],
+      "class_frequencies": [
+        0.2528211363277947,
+        0.026519406365771797,
+        0.019447644795621704,
+        0.0860276709433357,
+        0.032679162738100336,
+        0.22840263991146437,
+        0.3541023389179114
+      ]
+    },
+    "Urban": {
+      "num_masks": 1156,
+      "total_pixels": 1212153856,
+      "ignored_pixels": 58395411,
+      "valid_pixels": 1153758445,
+      "class_counts": [
+        559004254,
+        244601897,
+        107065867,
+        43055087,
+        87288280,
+        91339922,
+        21403138
+      ],
+      "class_frequencies": [
+        0.4845071829571744,
+        0.2120044261084477,
+        0.09279747200463612,
+        0.03731724537886264,
+        0.0756555935761753,
+        0.07916728358161661,
+        0.01855079639308729
+      ]
+    }
+  },
+  "total": {
+    "num_masks": 2522,
+    "total_pixels": 2644508672,
+    "ignored_pixels": 99632059,
+    "valid_pixels": 2544876613,
+    "class_counts": [
+      910708330,
+      281493525,
+      134119839,
+      162729743,
+      132748857,
+      409074984,
+      514001335
+    ],
+    "class_frequencies": [
+      0.3578595226769841,
+      0.11061185582123938,
+      0.05270190244779463,
+      0.06394406006512347,
+      0.05216318006219974,
+      0.1607445256521755,
+      0.20197495327448317
+    ]
+  }
+}

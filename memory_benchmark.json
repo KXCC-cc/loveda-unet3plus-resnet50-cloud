@@ -1,0 +1,36 @@
+[
+  {
+    "backbone": "resnet34",
+    "batch_size": 1,
+    "image_size": 512,
+    "status": "ok",
+    "weights": "IMAGENET1K_V1",
+    "peak_allocated_gib": 3.938969135284424,
+    "peak_reserved_gib": 4.96875
+  },
+  {
+    "backbone": "resnet34",
+    "batch_size": 2,
+    "image_size": 512,
+    "status": "ok",
+    "weights": "IMAGENET1K_V1",
+    "peak_allocated_gib": 7.704838275909424,
+    "peak_reserved_gib": 10.75390625
+  },
+  {
+    "backbone": "resnet50",
+    "batch_size": 1,
+    "image_size": 512,
+    "status": "ok",
+    "weights": "IMAGENET1K_V1",
+    "peak_allocated_gib": 6.879076957702637,
+    "peak_reserved_gib": 10.421875
+  },
+  {
+    "backbone": "resnet50",
+    "batch_size": 2,
+    "image_size": 512,
+    "status": "oom",
+    "error": "CUDA error: out of memory"
+  }
+]

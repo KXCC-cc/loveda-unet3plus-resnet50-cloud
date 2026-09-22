@@ -1,0 +1,40 @@
+{
+  "status": "running",
+  "best_epoch": 4,
+  "best_miou": 0.4380444299397765,
+  "best_dice": 0.5998403076383937,
+  "best_dice_epoch": 4,
+  "best_val_loss": 1.729073135705677,
+  "best_val_loss_epoch": 2,
+  "best_miou_epoch_dice": 0.5998403076383937,
+  "best_miou_epoch_val_loss": 1.8078635396751692,
+  "best_epoch_per_class_iou": {
+    "background": 0.5052193349425343,
+    "building": 0.5286351020105814,
+    "road": 0.4214870084729901,
+    "water": 0.5701588902329646,
+    "barren": 0.19862550760396167,
+    "forest": 0.41944312448287235,
+    "agricultural": 0.4227420418325309
+  },
+  "per_class_best_iou": {
+    "background": 0.5052193349425343,
+    "building": 0.5286351020105814,
+    "road": 0.4214870084729901,
+    "water": 0.5701588902329646,
+    "barren": 0.19862550760396167,
+    "forest": 0.41944312448287235,
+    "agricultural": 0.48763636315354814
+  },
+  "final_epoch": 4,
+  "final_per_class_iou": {
+    "background": 0.5052193349425343,
+    "building": 0.5286351020105814,
+    "road": 0.4214870084729901,
+    "water": 0.5701588902329646,
+    "barren": 0.19862550760396167,
+    "forest": 0.41944312448287235,
+    "agricultural": 0.4227420418325309
+  },
+  "best_model": "/home/kxcc/unet3/runs/resnet50_pretrained_512_cat48_fast/best_model.pth"
+}

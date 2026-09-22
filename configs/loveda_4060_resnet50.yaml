@@ -1,0 +1,10 @@
+_base_: loveda_4060_resnet34.yaml
+
+# 与已完成的 ResNet34 实验保持同一训练协议，只替换编码器。
+# 这样两次实验的差异可以主要归因于 backbone。
+run:
+  name: resnet50_pretrained_512_randomcrop
+  output_dir: runs/resnet50_pretrained_512_randomcrop
+
+model:
+  backbone: resnet50

@@ -1,0 +1,9 @@
+# 云平台通常已经安装与GPU驱动匹配的PyTorch；满足下列最低版本时不要强制重装。
+torch>=2.2
+torchvision>=0.17
+PyYAML>=6.0
+Pillow>=9.1
+numpy>=1.23
+tqdm>=4.64
+matplotlib>=3.9
+Flask>=3.0,<4

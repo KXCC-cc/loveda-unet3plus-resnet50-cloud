@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LoveDA 遥感语义分割</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand-mark">U3+</span>
+        <span>
+          <strong>LoveDA Segmentation</strong>
+          <small>遥感影像智能解译演示</small>
+        </span>
+      </a>
+      <div class="model-status">
+        <span class="status-dot"></span>
+        {{ runtime.model }} · {{ runtime.device|upper }}
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">REMOTE SENSING · SEMANTIC SEGMENTATION</p>
+          <h1>上传一张遥感影像，<br><span>查看七类地物分割结果</span></h1>
+          <p class="hero-text">
+            使用 ImageNet 预训练 ResNet34 与 U-Net 3+ 全尺度特征融合，
+            输出原图、彩色类别图、透明叠加图和像素占比统计。
+          </p>
+          <div class="metrics">
+            <div><b>{{ runtime.best }}</b><span>Full-Val mIoU</span></div>
+            <div><b>{{ runtime.tile }}</b><span>滑窗尺寸</span></div>
+            <div><b>7</b><span>地物类别</span></div>
+          </div>
+        </div>
+
+        <form class="upload-card" action="/predict" method="post"
+              enctype="multipart/form-data" id="upload-form">
+          <div class="upload-icon">↥</div>
+          <h2>上传测试图片</h2>
+          <p>支持 PNG、JPG、JPEG、TIF、TIFF，文件不超过 20 MB</p>
+          <label class="drop-zone" for="image-input">
+            <input id="image-input" name="image" type="file"
+                   accept=".png,.jpg,.jpeg,.tif,.tiff,image/*" required>
+            <span class="choose-button">选择图片</span>
+            <span id="file-name">或将文件拖放到这里</span>
+          </label>
+          <button class="primary-button" id="submit-button" type="submit">
+            <span class="button-text">开始识别</span>
+            <span class="spinner" aria-hidden="true"></span>
+          </button>
+          <p class="device-note">
+            当前设备：{{ runtime.device }} · AMP {{ runtime.amp }}
+          </p>
+        </form>
+      </section>
+
+      {% if error %}
+      <section class="alert" role="alert">
+        <strong>无法完成识别</strong>
+        <span>{{ error }}</span>
+      </section>
+      {% endif %}
+
+      {% if result %}
+      <section class="result-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">PREDICTION RESULT</p>
+            <h2>语义分割结果</h2>
+          </div>
+          <div class="result-meta">
+            <span>{{ result.filename }}</span>
+            <span>{{ result.width }} × {{ result.height }}</span>
+            <span>{{ result.elapsed }} 秒</span>
+          </div>
+        </div>
+
+        <div class="image-grid">
+          <article class="image-card">
+            <div class="card-title"><span>01</span>原始 RGB 影像</div>
+            <div class="image-frame">
+              <img src="{{ result.original }}" alt="原始遥感影像">
+            </div>
+            <a class="download-link" href="{{ result.original }}"
+               download="original.png">下载原图</a>
+          </article>
+
+          <article class="image-card">
+            <div class="card-title"><span>02</span>彩色分割掩码</div>
+            <div class="image-frame checkerboard">
+              <img src="{{ result.mask }}" alt="彩色语义分割结果">
+            </div>
+            <div class="download-row">
+              <a class="download-link" href="{{ result.mask }}"
+                 download="segmentation_color.png">下载彩色图</a>
+              <a class="download-link secondary" href="{{ result.raw_mask }}"
+                 download="segmentation_loveda_labels.png">下载标签图</a>
+            </div>
+          </article>
+
+          <article class="image-card">
+            <div class="card-title"><span>03</span>预测叠加效果</div>
+            <div class="image-frame">
+              <img src="{{ result.overlay }}" alt="原图与预测叠加结果">
+            </div>
+            <a class="download-link" href="{{ result.overlay }}"
+               download="segmentation_overlay.png">下载叠加图</a>
+          </article>
+        </div>
+
+        <div class="analysis-grid">
+          <article class="panel distribution-panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">PIXEL DISTRIBUTION</p>
+                <h3>预测类别占比</h3>
+              </div>
+              <span>按预测像素统计</span>
+            </div>
+            <div class="class-bars">
+              {% for item in result.classes %}
+              <div class="class-row">
+                <div class="class-name">
+                  <i style="background: {{ item.color }}"></i>
+                  <span>{{ item.name }}</span>
+                </div>
+                <div class="bar-track">
+                  <div class="bar-fill"
+                       style="width: {{ item.percentage }}%; background: {{ item.color }}"></div>
+                </div>
+                <strong>{{ item.percentage_text }}</strong>
+              </div>
+              {% endfor %}
+            </div>
+          </article>
+
+          <aside class="panel legend-panel">
+            <p class="eyebrow">MODEL INFORMATION</p>
+            <h3>模型与图例</h3>
+            <dl>
+              <div><dt>模型</dt><dd>{{ runtime.model }}</dd></div>
+              <div><dt>最佳轮次</dt><dd>Epoch {{ runtime.epoch }}</dd></div>
+              <div><dt>最佳 mIoU</dt><dd>{{ runtime.best }}</dd></div>
+              <div><dt>推理方式</dt><dd>单尺度滑窗</dd></div>
+            </dl>
+            <div class="legend">
+              {% for item in result.classes %}
+              <span><i style="background: {{ item.color }}"></i>{{ item.name }}</span>
+              {% endfor %}
+            </div>
+          </aside>
+        </div>
+
+        <div class="notice">
+          <strong>结果说明</strong>
+          <p>
+            页面展示的是模型预测，不代表人工标注真值。下载的标签图使用
+            LoveDA 原始编号 1～7；彩色图中的颜色在所有结果中保持一致。
+          </p>
+        </div>
+      </section>
+      {% else %}
+      <section class="workflow">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">HOW IT WORKS</p>
+            <h2>从图片到分割结果</h2>
+          </div>
+        </div>
+        <div class="workflow-grid">
+          <article><b>01</b><h3>图像预处理</h3><p>RGB 转换与 ImageNet 标准化，保持原始空间尺寸。</p></article>
+          <article><b>02</b><h3>滑窗推理</h3><p>以 512×512 窗口覆盖整幅影像，对重叠 logits 求平均。</p></article>
+          <article><b>03</b><h3>像素分类</h3><p>在七个地物类别中逐像素选择最高响应类别。</p></article>
+          <article><b>04</b><h3>结果可视化</h3><p>生成固定颜色掩码、透明叠加图与类别占比。</p></article>
+        </div>
+      </section>
+      {% endif %}
+    </main>
+
+    <footer>
+      <span>LoveDA U-Net 3+ Semantic Segmentation</span>
+      <span>本地推理 · 图片不会上传到外部服务器</span>
+    </footer>
+  </div>
+
+  <script>
+    const input = document.getElementById("image-input");
+    const fileName = document.getElementById("file-name");
+    const form = document.getElementById("upload-form");
+    const button = document.getElementById("submit-button");
+
+    input.addEventListener("change", () => {
+      fileName.textContent = input.files.length
+        ? input.files[0].name
+        : "或将文件拖放到这里";
+    });
+
+    form.addEventListener("submit", () => {
+      button.disabled = true;
+      button.classList.add("loading");
+      button.querySelector(".button-text").textContent = "模型识别中";
+    });
+  </script>
+</body>
+</html>

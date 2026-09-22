@@ -1,0 +1,7 @@
+_base_: ../resnet_pretrained_512_multiscale.yaml
+run:
+  name: ablation_random_crop
+  output_dir: runs/ablation_random_crop
+data:
+  class_aware_crop:
+    probability: 0.0

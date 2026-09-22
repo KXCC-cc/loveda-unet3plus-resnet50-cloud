@@ -1,0 +1,46 @@
+# LoveDA 原始数据与由 Test 复制的展示素材不得提交。
+dataset/
+demo_assets/
+
+# 模型权重、训练记录、预测图和诊断结果均保留在本机。
+checkpoints*/
+runs/
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# Python 虚拟环境、缓存与构建产物。
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+build/
+dist/
+
+# IDE 与操作系统文件。
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 本机环境排错输出。
+*.log
+env_check2_out.txt
+torch_test_err.txt
+
+# 临时文件。
+*.tmp
+*.temp
+*~
+
+# LoveDA 在线评测提交产物。
+submissions/
+
+# GitHub Release上传用的数据分卷保存在本机，不进入Git历史。
+dataset_release/

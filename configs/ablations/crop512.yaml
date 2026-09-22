@@ -1,0 +1,4 @@
+_base_: ../loveda_4060_resnet34.yaml
+run:
+  name: ablation_crop512
+  output_dir: runs/ablation_crop512

@@ -1,0 +1,29 @@
+_base_: ../loveda_4060_resnet50.yaml
+
+# 16GB 云 GPU 的保守配置：保留完整 CatChannels=64，
+# 通过 batch=1 + accumulation=16 对齐官方 effective batch=16。
+run:
+  name: cloud_resnet50_16gb
+  output_dir: runs/cloud_resnet50_16gb
+
+data:
+  loader:
+    batch_size: 1
+    num_workers: 4
+    pin_memory: true
+    persistent_workers: true
+    prefetch_factor: 2
+
+training:
+  max_iters: 15000
+  accumulation_steps: 16
+
+validation:
+  interval_epochs: 2
+  patch_batch_size: 1
+
+runtime:
+  amp: true
+  cudnn_benchmark: true
+  channels_last: true
+  compile: false

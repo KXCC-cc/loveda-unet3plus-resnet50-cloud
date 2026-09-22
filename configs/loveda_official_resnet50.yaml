@@ -1,0 +1,79 @@
+run:
+  name: loveda_official_resnet50
+  output_dir: runs/loveda_official_resnet50
+seed: 2333
+model:
+  type: unet3plus_resnet
+  num_classes: 7
+  backbone: resnet50
+  pretrained: true
+  weights: IMAGENET1K_V1
+  standard_resnet_stem: false
+  freeze_encoder_bn: true
+  cat_channels: 64
+data:
+  root: dataset
+  strategy: crop
+  crop_size: [512, 512]
+  samples_per_image: 1
+  train_scales: [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]
+  augmentation:
+    mode: one_of
+    one_of_probability: 0.75
+    horizontal_flip: 0.5
+    vertical_flip: 0.5
+    rotate90: 1.0
+    color_jitter: 0.0
+  class_aware_crop:
+    probability: 0.0
+    classes: [1, 2, 3, 4]
+    min_target_pixels: 512
+    max_attempts: 8
+  loader:
+    batch_size: 16
+    num_workers: 2
+    pin_memory: true
+    persistent_workers: true
+    prefetch_factor: 2
+loss:
+  profile: official_ce
+  ce_weight: 1.0
+  dice_weight: 0.0
+  focal_weight: 0.0
+  focal_gamma: 2.0
+  aux_weights: [0.5, 0.25, 0.125, 0.0625]
+  class_weights: none
+  class_stats_path: class_stats.json
+optimizer:
+  name: sgd
+  lr: 0.01
+  momentum: 0.9
+  weight_decay: 0.0001
+  lr_scale: none
+  reference_batch_size: 16
+  differential_lr: null
+scheduler:
+  name: poly
+  power: 0.9
+training:
+  max_iters: 15000
+  epochs: null
+  accumulation_steps: 1
+  gradient_clip: 35.0
+  log_interval: 50
+validation:
+  interval_epochs: 20
+  tile_size: [512, 512]
+  stride: [512, 512]
+  patch_batch_size: 4
+  scales: [1.0]
+  horizontal_flip_tta: false
+  accumulate_on_device: false
+  visualization_samples: 6
+  visualization_interval_epochs: 20
+runtime:
+  device: cuda:0
+  amp: true
+  cudnn_benchmark: true
+  channels_last: false
+  compile: false

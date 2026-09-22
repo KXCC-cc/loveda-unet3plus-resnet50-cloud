@@ -1,0 +1,4 @@
+_base_: ../resnet_pretrained_512_classaware.yaml
+run:
+  name: ablation_class_aware_crop
+  output_dir: runs/ablation_class_aware_crop

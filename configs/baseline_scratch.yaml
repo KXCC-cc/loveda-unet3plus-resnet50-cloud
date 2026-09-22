@@ -1,0 +1,31 @@
+_base_: loveda_4060_resnet34.yaml
+run:
+  name: baseline_scratch_256
+  output_dir: runs/baseline_scratch_256
+model:
+  type: unet3plus_scratch
+  num_classes: 7
+data:
+  crop_size: [256, 256]
+  train_scales: [1.0]
+  loader:
+    batch_size: 2
+    num_workers: 2
+loss:
+  class_weights: auto
+optimizer:
+  name: adamw
+  lr: 0.0003
+  weight_decay: 0.0001
+  lr_scale: none
+scheduler:
+  name: cosine
+training:
+  max_iters: null
+  epochs: 40
+  accumulation_steps: 1
+validation:
+  interval_epochs: 1
+  tile_size: [256, 256]
+  stride: [256, 256]
+  patch_batch_size: 2

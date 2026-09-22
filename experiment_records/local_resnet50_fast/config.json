@@ -1,0 +1,138 @@
+{
+  "run": {
+    "name": "resnet50_pretrained_512_cat48_fast",
+    "output_dir": "/home/kxcc/unet3/runs/resnet50_pretrained_512_cat48_fast"
+  },
+  "seed": 42,
+  "model": {
+    "type": "unet3plus_resnet",
+    "num_classes": 7,
+    "backbone": "resnet50",
+    "pretrained": true,
+    "weights": "IMAGENET1K_V1",
+    "standard_resnet_stem": false,
+    "freeze_encoder_bn": true,
+    "cat_channels": 48,
+    "resolved_weights": "IMAGENET1K_V1"
+  },
+  "data": {
+    "root": "/home/kxcc/unet3/dataset",
+    "strategy": "crop",
+    "crop_size": [
+      512,
+      512
+    ],
+    "samples_per_image": 1,
+    "train_scales": [
+      1.0
+    ],
+    "augmentation": {
+      "mode": "independent",
+      "one_of_probability": 0.75,
+      "horizontal_flip": 0.5,
+      "vertical_flip": 0.5,
+      "rotate90": 1.0,
+      "color_jitter": 0.0
+    },
+    "class_aware_crop": {
+      "probability": 0.0,
+      "classes": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "min_target_pixels": 512,
+      "max_attempts": 8
+    },
+    "loader": {
+      "batch_size": 1,
+      "num_workers": 2,
+      "pin_memory": true,
+      "persistent_workers": true,
+      "prefetch_factor": 2
+    }
+  },
+  "loss": {
+    "profile": "unet3plus_performance",
+    "ce_weight": 1.0,
+    "dice_weight": 1.0,
+    "focal_weight": 0.0,
+    "focal_gamma": 2.0,
+    "aux_weights": [
+      0.5,
+      0.25,
+      0.125,
+      0.0625
+    ],
+    "class_weights": "none",
+    "class_stats_path": "/home/kxcc/unet3/class_stats.json"
+  },
+  "optimizer": {
+    "name": "sgd",
+    "lr": 0.01,
+    "momentum": 0.9,
+    "weight_decay": 0.0001,
+    "lr_scale": "linear",
+    "reference_batch_size": 16,
+    "differential_lr": null
+  },
+  "scheduler": {
+    "name": "poly",
+    "power": 0.9
+  },
+  "training": {
+    "max_iters": 8000,
+    "epochs": null,
+    "accumulation_steps": 2,
+    "gradient_clip": 1.0,
+    "log_interval": 50
+  },
+  "validation": {
+    "interval_epochs": 2,
+    "tile_size": [
+      512,
+      512
+    ],
+    "stride": [
+      512,
+      512
+    ],
+    "patch_batch_size": 1,
+    "scales": [
+      1.0
+    ],
+    "horizontal_flip_tta": false,
+    "accumulate_on_device": true,
+    "visualization_samples": 6,
+    "visualization_interval_epochs": 5
+  },
+  "runtime": {
+    "device": "cuda:0",
+    "amp": true,
+    "cudnn_benchmark": false,
+    "channels_last": true,
+    "compile": false
+  },
+  "config_path": "/home/kxcc/unet3/configs/loveda_4060_resnet50.yaml",
+  "environment": {
+    "git_commit": "8f9b93ec5f7ed36aea61f893ffe9a8ff23251653",
+    "git_dirty": false,
+    "pytorch": "2.9.1+cu126",
+    "cuda_runtime": "12.6",
+    "cudnn": 91002,
+    "cuda_available": true,
+    "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+    "cuda_device_count": 1
+  },
+  "resolved": {
+    "physical_batch": 1,
+    "accumulation_steps": 2,
+    "effective_batch": 2,
+    "updates_per_epoch": 1261,
+    "max_optimizer_steps": 8000,
+    "learning_rate": 0.00125,
+    "class_weights": null,
+    "class_frequencies": null
+  }
+}

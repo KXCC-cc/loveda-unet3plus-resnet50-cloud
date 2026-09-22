@@ -1,0 +1,6 @@
+_base_: loveda_4060_resnet34.yaml
+run:
+  name: resnet34_pretrained_512_multiscale
+  output_dir: runs/resnet34_pretrained_512_multiscale
+data:
+  train_scales: [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]

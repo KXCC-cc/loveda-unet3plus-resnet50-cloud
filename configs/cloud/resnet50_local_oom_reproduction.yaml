@@ -1,0 +1,7 @@
+_base_: ../loveda_4060_resnet50.yaml
+
+# RTX 4060 Laptop 8GB 上发生OOM的原始配置快照。
+# 仅用于复现实验和说明问题，不建议在8GB显卡上直接运行。
+run:
+  name: resnet50_local_8gb_oom_reproduction
+  output_dir: runs/resnet50_local_8gb_oom_reproduction

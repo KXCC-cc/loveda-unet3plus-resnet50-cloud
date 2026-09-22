@@ -1,0 +1,10 @@
+_base_: resnet_pretrained_512_multiscale.yaml
+run:
+  name: resnet34_pretrained_512_classaware
+  output_dir: runs/resnet34_pretrained_512_classaware
+data:
+  class_aware_crop:
+    probability: 0.5
+    classes: [1, 2, 3, 4]
+    min_target_pixels: 512
+    max_attempts: 8
