@@ -1,0 +1,28 @@
+_base_: ../loveda_4060_resnet50.yaml
+
+# 40GB及以上云GPU：提高物理batch，减少梯度累积的串行开销。
+run:
+  name: cloud_resnet50_40gb
+  output_dir: runs/cloud_resnet50_40gb
+
+data:
+  loader:
+    batch_size: 4
+    num_workers: 8
+    pin_memory: true
+    persistent_workers: true
+    prefetch_factor: 2
+
+training:
+  max_iters: 15000
+  accumulation_steps: 4
+
+validation:
+  interval_epochs: 8
+  patch_batch_size: 4
+
+runtime:
+  amp: true
+  cudnn_benchmark: true
+  channels_last: true
+  compile: false

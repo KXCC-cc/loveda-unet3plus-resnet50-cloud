@@ -19,7 +19,7 @@ training:
   accumulation_steps: 16
 
 validation:
-  interval_epochs: 2
+  interval_epochs: 8
   patch_batch_size: 1
 
 runtime:

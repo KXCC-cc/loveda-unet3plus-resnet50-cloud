@@ -46,3 +46,15 @@ lr=0.01。
 
 包括best_model.pth、last_checkpoint.pth、metrics.csv、summary.json、
 曲线、预测样本和混淆矩阵。
+
+## 40GB及以上GPU
+
+A100 40GB等更大显存GPU可减少串行梯度累积：
+
+    bash scripts/cloud_train_resnet50_40gb.sh
+
+三套配置都保持effective batch=16。由于batch=1 + accumulation=16会执行更多串行
+前后向计算，16GB配置最省显存但最慢；优先选择能够容纳的最大物理batch。
+
+验证间隔设置为8个数据轮次，约每1260次optimizer update执行一次完整验证，
+避免effective batch增大后仍每2轮验证而明显拖慢训练。
