@@ -4,6 +4,10 @@
 云端环境、数据下载和启动命令见 [CLOUD_TRAINING.md](CLOUD_TRAINING.md)，本地失败记录见
 [docs/LOCAL_OOM_RECORD.md](docs/LOCAL_OOM_RECORD.md)。
 
+2026-09-22 新增的多尺度、类别感知裁块、Focal、差分学习率和 warmup 均为独立、
+默认关闭的受控消融，不改变原 24GB baseline。完整变更、资源代价与实验顺序见
+[CHANGELOG_MIOU.md](CHANGELOG_MIOU.md)。
+
 ---
 
 # LoveDA U-Net 3+：Scratch Baseline 与 ImageNet ResNet Encoder

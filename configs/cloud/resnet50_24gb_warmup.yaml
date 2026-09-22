@@ -1,0 +1,10 @@
+_base_: resnet50_24gb.yaml
+
+# 独立 warmup 消融：前 500 个成功的 optimizer updates 线性升至基础 LR。
+run:
+  name: cloud_resnet50_24gb_warmup
+  output_dir: runs/cloud_resnet50_24gb_warmup
+
+scheduler:
+  warmup_updates: 500
+  warmup_start_factor: 0.01

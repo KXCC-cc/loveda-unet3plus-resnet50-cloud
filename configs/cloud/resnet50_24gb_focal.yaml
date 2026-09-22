@@ -1,0 +1,12 @@
+_base_: resnet50_24gb.yaml
+
+# 消融 E：降低普通 CE 权重，避免 CE 与 Focal 各取 1.0 后重复强化同一项。
+run:
+  name: cloud_resnet50_24gb_focal
+  output_dir: runs/cloud_resnet50_24gb_focal
+
+loss:
+  ce_weight: 0.5
+  dice_weight: 1.0
+  focal_weight: 0.5
+  focal_gamma: 2.0

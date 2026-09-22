@@ -1,0 +1,9 @@
+_base_: resnet50_24gb.yaml
+
+# 消融 D：仅加入 LoveDA 六尺度训练，最终仍随机裁成 512×512。
+run:
+  name: cloud_resnet50_24gb_multiscale
+  output_dir: runs/cloud_resnet50_24gb_multiscale
+
+data:
+  train_scales: [0.5, 0.75, 1.0, 1.25, 1.5, 1.75]

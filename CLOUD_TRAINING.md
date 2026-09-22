@@ -25,6 +25,9 @@
     cd loveda-unet3plus-resnet50-cloud
     bash scripts/cloud_prepare.sh
 
+正式脚本会先执行 CUDA 与数据集预检。只有检测到 GPU，且 Train/Val 分别为
+2522/1669 张并通过 image/mask 文件名核对后才会进入训练。
+
 16GB GPU先运行：
 
     bash scripts/cloud_train_resnet50_16gb.sh
@@ -32,6 +35,9 @@
 24GB及以上GPU可运行：
 
     bash scripts/cloud_train_resnet50_24gb.sh
+
+这条命令是第一轮推荐实验，仍代表干净的 ResNet50 baseline。不要跳过它直接把
+所有优化合并，否则无法判断收益来源。
 
 若24GB配置仍OOM，改用16GB配置。不要通过减小裁块或cat_channels来悄悄改变
 本次对照实验。两套云配置的effective batch都是16，线性学习率缩放后使用
@@ -58,3 +64,36 @@ A100 40GB等更大显存GPU可减少串行梯度累积：
 
 验证间隔设置为8个数据轮次，约每1260次optimizer update执行一次完整验证，
 避免effective batch增大后仍每2轮验证而明显拖慢训练。
+
+## 受控消融
+
+完成 baseline 后按顺序运行：
+
+```bash
+bash scripts/cloud_train_resnet50_24gb_diff_lr.sh
+bash scripts/cloud_train_resnet50_24gb_classaware.sh
+bash scripts/cloud_train_resnet50_24gb_multiscale.sh
+bash scripts/cloud_train_resnet50_24gb_focal.sh
+bash scripts/cloud_train_resnet50_24gb_warmup.sh
+```
+
+只有多尺度与类别感知单项都有效时，再运行：
+
+```bash
+bash scripts/cloud_train_resnet50_24gb_multiscale_classaware.sh
+```
+
+各项原理、类别影响和资源代价见 [CHANGELOG_MIOU.md](CHANGELOG_MIOU.md)。
+
+## 显存预检
+
+下面的命令模拟 ResNet50、cat64、512 crop、batch2、Deep Supervision、
+CE+Dice、AMP、forward/backward/optimizer step，不会启动长训练：
+
+```bash
+python -m tools.benchmark_memory \
+  --backbone resnet50 --batch-size 2 --image-size 512 \
+  --cat-channels 64 --loss-profile ce_dice
+```
+
+如果 batch2 OOM，改用 `configs/cloud/resnet50_16gb.yaml`，保持 cat64 与 512 crop。

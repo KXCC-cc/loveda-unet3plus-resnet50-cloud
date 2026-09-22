@@ -21,7 +21,11 @@ from utils.checkpoint import (
     save_checkpoint,
 )
 from utils.class_weights import load_inverse_sqrt_weights
-from utils.constants import CLASS_NAMES, DEFAULT_AUX_WEIGHTS
+from utils.constants import (
+    CLASS_NAMES,
+    DEFAULT_AUX_WEIGHTS,
+    RESNET34_REFERENCE_MIOU,
+)
 from utils.dataset import LoveDADataset
 from utils.device import autocast_context, create_grad_scaler, print_device_info, resolve_device
 from utils.experiment import (
@@ -142,12 +146,22 @@ def _make_optimizer(config: dict, model: torch.nn.Module, effective_batch: int):
         encoder_ids = {id(parameter) for parameter in model.encoder.parameters()}
         encoder_parameters = [p for p in model.parameters() if id(p) in encoder_ids and p.requires_grad]
         decoder_parameters = [p for p in model.parameters() if id(p) not in encoder_ids and p.requires_grad]
+        if not encoder_parameters or not decoder_parameters:
+            raise ValueError("差分学习率要求 encoder 和 decoder 参数组都非空。")
+        encoder_lr = float(differential["encoder_lr"])
+        decoder_lr = float(differential["decoder_lr"])
+        if encoder_lr <= 0 or decoder_lr <= 0:
+            raise ValueError("encoder_lr 和 decoder_lr 必须大于 0。")
         param_groups = [
-            {"params": encoder_parameters, "lr": float(differential["encoder_lr"])},
-            {"params": decoder_parameters, "lr": float(differential["decoder_lr"])},
+            {"params": encoder_parameters, "lr": encoder_lr, "name": "encoder"},
+            {"params": decoder_parameters, "lr": decoder_lr, "name": "decoder"},
         ]
     else:
-        param_groups = [{"params": [p for p in model.parameters() if p.requires_grad], "lr": base_lr}]
+        param_groups = [{
+            "params": [p for p in model.parameters() if p.requires_grad],
+            "lr": base_lr,
+            "name": "all",
+        }]
 
     name = settings.get("name", "sgd").lower()
     if name == "sgd":
@@ -166,6 +180,17 @@ def _make_optimizer(config: dict, model: torch.nn.Module, effective_batch: int):
     else:
         raise ValueError("optimizer.name 仅支持 sgd 或 adamw。")
     return optimizer, base_lr
+
+
+def _optimizer_group_lrs(optimizer: torch.optim.Optimizer) -> dict[str, float]:
+    """返回实际参数组初始 LR，供 config.json 与日志核查。"""
+    result = {}
+    for index, group in enumerate(optimizer.param_groups):
+        name = str(group.get("name", f"group_{index}"))
+        if name in result:
+            raise ValueError(f"optimizer 参数组名称重复：{name}")
+        result[name] = float(group["lr"])
+    return result
 
 
 def _checkpoint_payload(
@@ -284,11 +309,16 @@ def run_training(config: dict[str, Any], resume: Path | None = None) -> None:
         class_weights=class_weights,
     ).to(device)
     optimizer, resolved_lr = _make_optimizer(config, model, effective_batch)
+    resolved_group_lrs = _optimizer_group_lrs(optimizer)
     scheduler = UpdateLRScheduler(
         optimizer,
         max_updates=max_updates,
         name=config["scheduler"].get("name", "poly"),
         power=float(config["scheduler"].get("power", 0.9)),
+        warmup_updates=int(config["scheduler"].get("warmup_updates", 0)),
+        warmup_start_factor=float(
+            config["scheduler"].get("warmup_start_factor", 0.01)
+        ),
     )
     scaler = create_grad_scaler(amp_enabled)
 
@@ -299,6 +329,15 @@ def run_training(config: dict[str, Any], resume: Path | None = None) -> None:
         "updates_per_epoch": updates_per_epoch,
         "max_optimizer_steps": max_updates,
         "learning_rate": resolved_lr,
+        "optimizer_group_lrs": resolved_group_lrs,
+        "encoder_lr": resolved_group_lrs.get("encoder", resolved_group_lrs.get("all")),
+        "decoder_lr": resolved_group_lrs.get("decoder", resolved_group_lrs.get("all")),
+        "scheduler": config["scheduler"].get("name", "poly"),
+        "warmup_updates": scheduler.warmup_updates,
+        "warmup_start_factor": scheduler.warmup_start_factor,
+        "baseline_reference_miou": float(
+            config.get("baseline_reference_miou", RESNET34_REFERENCE_MIOU)
+        ),
         "class_weights": class_weights,
         "class_frequencies": frequencies,
     }
@@ -307,6 +346,15 @@ def run_training(config: dict[str, Any], resume: Path | None = None) -> None:
         f"physical batch={physical_batch}, accumulation={accumulation}, effective batch={effective_batch}"
     )
     print(f"Max optimizer steps: {max_updates} | resolved lr: {resolved_lr:g}")
+    print(
+        "Optimizer parameter-group base LRs: "
+        + ", ".join(f"{name}={lr:g}" for name, lr in resolved_group_lrs.items())
+    )
+    if scheduler.warmup_updates:
+        print(
+            f"LR warmup: {scheduler.warmup_updates} optimizer updates | "
+            f"start factor={scheduler.warmup_start_factor:g}"
+        )
     print(f"Backbone weights: {actual_weights}")
     if class_weights is not None:
         print("Class weights:")
@@ -454,7 +502,12 @@ def run_training(config: dict[str, Any], resume: Path | None = None) -> None:
             rows = list(csv.DictReader(file))
         write_json(
             output_dir / "summary.json",
-            build_summary(rows, output_dir / "best_model.pth", "running"),
+            build_summary(
+                rows,
+                output_dir / "best_model.pth",
+                "running",
+                baseline_reference_miou=config["resolved"]["baseline_reference_miou"],
+            ),
         )
 
     with metrics_path.open("r", encoding="utf-8", newline="") as file:
@@ -462,5 +515,10 @@ def run_training(config: dict[str, Any], resume: Path | None = None) -> None:
     if rows:
         write_json(
             output_dir / "summary.json",
-            build_summary(rows, output_dir / "best_model.pth", "complete"),
+            build_summary(
+                rows,
+                output_dir / "best_model.pth",
+                "complete",
+                baseline_reference_miou=config["resolved"]["baseline_reference_miou"],
+            ),
         )

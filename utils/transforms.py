@@ -66,7 +66,7 @@ def transform_image_and_mask(
     """同步执行多尺度、crop、翻转和直角旋转；标签始终保留 0~7。
 
     原始 mask 的尺寸、类型和标签范围由 Dataset 在进入这里前检查。
-    只为全 ignore 的 crop 有限重采样，不对类别比例做强制筛选。
+    class-aware 模式有限次筛选目标像素足量的窗口，失败后回退普通随机 crop。
     """
     crop_height, crop_width = validate_image_size(image_size)
     image = image.convert("RGB")

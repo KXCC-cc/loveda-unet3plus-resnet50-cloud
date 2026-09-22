@@ -425,6 +425,7 @@ def build_summary(
     best_model_path: Path,
     status: str,
     class_names: Sequence[str] = CLASS_NAMES,
+    baseline_reference_miou: float | None = None,
 ) -> dict[str, Any]:
     """根据已记录 epoch 汇总最佳与最终指标。最佳 epoch 按 mIoU 选择。"""
     if not rows:
@@ -442,10 +443,11 @@ def build_summary(
         ]
         per_class_best_iou[name] = max(finite_values) if finite_values else None
 
-    return {
+    best_miou = _finite_or_none(best_row["miou"])
+    summary = {
         "status": status,
         "best_epoch": int(best_row["epoch"]),
-        "best_miou": _finite_or_none(best_row["miou"]),
+        "best_miou": best_miou,
         "best_dice": _finite_or_none(best_dice_row["mean_dice"]),
         "best_dice_epoch": int(best_dice_row["epoch"]),
         "best_val_loss": _finite_or_none(best_loss_row["val_main_loss"]),
@@ -464,3 +466,12 @@ def build_summary(
         },
         "best_model": str(best_model_path.resolve()),
     }
+    if baseline_reference_miou is not None:
+        reference = float(baseline_reference_miou)
+        if not math.isfinite(reference):
+            raise ValueError("baseline_reference_miou 必须是有限数。")
+        summary["baseline_reference_miou"] = reference
+        summary["delta_vs_resnet34"] = (
+            None if best_miou is None else best_miou - reference
+        )
+    return summary

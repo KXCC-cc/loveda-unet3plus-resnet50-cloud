@@ -1,0 +1,11 @@
+_base_: resnet50_24gb.yaml
+
+# 消融 B：预训练 encoder 使用 decoder 的 0.1 倍学习率。
+run:
+  name: cloud_resnet50_24gb_diff_lr
+  output_dir: runs/cloud_resnet50_24gb_diff_lr
+
+optimizer:
+  differential_lr:
+    encoder_lr: 0.001
+    decoder_lr: 0.01

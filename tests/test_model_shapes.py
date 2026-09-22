@@ -23,6 +23,22 @@ class ModelShapeTests(unittest.TestCase):
         self.assertEqual(tuple(outputs["main"].shape), (1, 7, 64, 64))
         self.assertEqual(outputs["aux"], [])
 
+    def test_resnet50_deep_supervision_and_fusion_channels(self):
+        model = UNet3PlusResNet(
+            backbone="resnet50", pretrained=False, cat_channels=64
+        ).eval()
+        self.assertEqual(model.cat_channels, 64)
+        self.assertEqual(model.up_channels, 320)
+        self.assertEqual(model.d4_fusion[0].in_channels, 320)
+        with torch.no_grad():
+            outputs = model(torch.randn(1, 3, 64, 64), return_aux=True)
+        self.assertEqual(tuple(outputs["main"].shape), (1, 7, 64, 64))
+        self.assertEqual(len(outputs["aux"]), 4)
+        self.assertEqual(
+            [tuple(output.shape) for output in outputs["aux"]],
+            [(1, 7, 64, 64)] * 4,
+        )
+
     def test_encoder_bn_is_frozen(self):
         model = UNet3PlusResNet(backbone="resnet34", pretrained=False, freeze_encoder_bn=True)
         model.train()
