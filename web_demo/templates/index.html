@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LoveDA 遥感语义分割</title>
+  <title>LoveDA · U-Net 3+ 模型对比系统</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
@@ -12,36 +12,37 @@
       <a class="brand" href="/">
         <span class="brand-mark">U3+</span>
         <span>
-          <strong>LoveDA Segmentation</strong>
-          <small>遥感影像智能解译演示</small>
+          <strong>LoveDA Model Comparison</strong>
+          <small>遥感语义分割实验对比仪表板</small>
         </span>
       </a>
       <div class="model-status">
         <span class="status-dot"></span>
-        {{ runtime.model }} · {{ runtime.device|upper }}
+        {{ runtime.model_count }} 个模型已登记 · {{ runtime.device|upper }}
       </div>
     </header>
 
     <main>
       <section class="hero">
         <div class="hero-copy">
-          <p class="eyebrow">REMOTE SENSING · SEMANTIC SEGMENTATION</p>
-          <h1>上传一张遥感影像，<br><span>查看七类地物分割结果</span></h1>
+          <p class="eyebrow">REMOTE SENSING · CONTROLLED COMPARISON</p>
+          <h1>LoveDA · U-Net 3+<br><span>模型对比系统</span></h1>
+          <p class="hero-lead">同一遥感影像 · 四模型语义分割横向比较</p>
           <p class="hero-text">
-            使用 ImageNet 预训练 ResNet34 与 U-Net 3+ 全尺度特征融合，
-            输出原图、彩色类别图、透明叠加图和像素占比统计。
+            四个正式 checkpoint 使用完全相同的 RGB 转换、ImageNet 标准化和
+            单尺度滑窗协议，并依次进入 GPU，保证对比一致且适配 8GB 显存。
           </p>
           <div class="metrics">
-            <div><b>{{ runtime.best }}</b><span>Full-Val mIoU</span></div>
-            <div><b>{{ runtime.tile }}</b><span>滑窗尺寸</span></div>
-            <div><b>7</b><span>地物类别</span></div>
+            <div><b>4</b><span>正式模型</span></div>
+            <div><b>7</b><span>LoveDA 类别</span></div>
+            <div><b>{{ runtime.tile }}</b><span>统一滑窗</span></div>
           </div>
         </div>
 
         <form class="upload-card" action="/predict" method="post"
               enctype="multipart/form-data" id="upload-form">
           <div class="upload-icon">↥</div>
-          <h2>上传测试图片</h2>
+          <h2>上传一张遥感影像</h2>
           <p>支持 PNG、JPG、JPEG、TIF、TIFF，文件不超过 20 MB</p>
           <label class="drop-zone" for="image-input">
             <input id="image-input" name="image" type="file"
@@ -50,9 +51,12 @@
             <span id="file-name">或将文件拖放到这里</span>
           </label>
           <button class="primary-button" id="submit-button" type="submit">
-            <span class="button-text">开始识别</span>
+            <span class="button-text">开始四模型对比</span>
             <span class="spinner" aria-hidden="true"></span>
           </button>
+          <p class="progress-message" id="progress-message">
+            四个模型将按顺序运行，不会同时占用 GPU
+          </p>
           <p class="device-note">
             当前设备：{{ runtime.device }} · AMP {{ runtime.amp }}
           </p>
@@ -61,7 +65,7 @@
 
       {% if error %}
       <section class="alert" role="alert">
-        <strong>无法完成识别</strong>
+        <strong>无法完成对比</strong>
         <span>{{ error }}</span>
       </section>
       {% endif %}
@@ -70,97 +74,136 @@
       <section class="result-section">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">PREDICTION RESULT</p>
-            <h2>语义分割结果</h2>
+            <p class="eyebrow">INPUT IMAGE</p>
+            <h2>输入影像</h2>
           </div>
           <div class="result-meta">
             <span>{{ result.filename }}</span>
             <span>{{ result.width }} × {{ result.height }}</span>
-            <span>{{ result.elapsed }} 秒</span>
+            <span>总耗时 {{ result.total_elapsed_text }}</span>
+            <span>{{ result.successful_models }}/4 成功</span>
           </div>
         </div>
 
-        <div class="image-grid">
-          <article class="image-card">
-            <div class="card-title"><span>01</span>原始 RGB 影像</div>
-            <div class="image-frame">
-              <img src="{{ result.original }}" alt="原始遥感影像">
-            </div>
-            <a class="download-link" href="{{ result.original }}"
-               download="original.png">下载原图</a>
-          </article>
+        <article class="original-card">
+          <a href="{{ result.original }}" target="_blank" rel="noopener">
+            <img src="{{ result.original }}" alt="上传的原始遥感影像">
+          </a>
+        </article>
 
-          <article class="image-card">
-            <div class="card-title"><span>02</span>彩色分割掩码</div>
-            <div class="image-frame checkerboard">
-              <img src="{{ result.mask }}" alt="彩色语义分割结果">
+        <div class="comparison-heading">
+          <div>
+            <p class="eyebrow">FOUR-MODEL RESULTS</p>
+            <h2>四模型预测结果</h2>
+          </div>
+          <p>{{ runtime.protocol }}</p>
+        </div>
+
+        <div class="model-grid">
+          {% for model in result.models %}
+          <article class="model-card{% if model.final %} final-model{% endif %}">
+            <header class="model-card-header">
+              <div>
+                <div class="model-index">MODEL {{ "%02d"|format(loop.index) }}</div>
+                <h3>{{ model.name }}</h3>
+                <p>{{ model.subtitle }}</p>
+              </div>
+              {% if model.final %}<span class="final-badge">FINAL</span>{% endif %}
+            </header>
+
+            {% if model.success %}
+            <div class="view-toggle" role="group" aria-label="{{ model.name }} 显示模式">
+              <button type="button" class="toggle-button active"
+                      data-card="{{ model.id }}" data-view="mask">Mask</button>
+              <button type="button" class="toggle-button"
+                      data-card="{{ model.id }}" data-view="overlay">Overlay</button>
+            </div>
+            <div class="model-image-frame">
+              <a class="model-view active" data-card="{{ model.id }}" data-view="mask"
+                 href="{{ model.mask }}" target="_blank" rel="noopener">
+                <img src="{{ model.mask }}" alt="{{ model.name }} 彩色预测 mask">
+              </a>
+              <a class="model-view" data-card="{{ model.id }}" data-view="overlay"
+                 href="{{ model.overlay }}" target="_blank" rel="noopener">
+                <img src="{{ model.overlay }}" alt="{{ model.name }} 预测叠加图">
+              </a>
+            </div>
+            <div class="model-metrics">
+              <div>
+                <span>Hidden Test mIoU</span>
+                <strong>{{ model.test_miou_percent }}</strong>
+              </div>
+              <div>
+                <span>推理时间</span>
+                <strong>{{ model.elapsed_text }}</strong>
+              </div>
             </div>
             <div class="download-row">
-              <a class="download-link" href="{{ result.mask }}"
-                 download="segmentation_color.png">下载彩色图</a>
-              <a class="download-link secondary" href="{{ result.raw_mask }}"
-                 download="segmentation_loveda_labels.png">下载标签图</a>
+              <a href="{{ model.mask }}" download="{{ model.id }}_mask.png">彩色 Mask</a>
+              <a href="{{ model.overlay }}" download="{{ model.id }}_overlay.png">Overlay</a>
+              <a href="{{ model.raw_mask }}" download="{{ model.id }}_labels.png">标签图</a>
             </div>
-          </article>
-
-          <article class="image-card">
-            <div class="card-title"><span>03</span>预测叠加效果</div>
-            <div class="image-frame">
-              <img src="{{ result.overlay }}" alt="原图与预测叠加结果">
+            {% else %}
+            <div class="model-error">
+              <strong>该模型推理失败</strong>
+              <p>{{ model.error }}</p>
             </div>
-            <a class="download-link" href="{{ result.overlay }}"
-               download="segmentation_overlay.png">下载叠加图</a>
+            {% endif %}
           </article>
+          {% endfor %}
         </div>
 
-        <div class="analysis-grid">
-          <article class="panel distribution-panel">
-            <div class="panel-heading">
-              <div>
-                <p class="eyebrow">PIXEL DISTRIBUTION</p>
-                <h3>预测类别占比</h3>
-              </div>
-              <span>按预测像素统计</span>
-            </div>
-            <div class="class-bars">
-              {% for item in result.classes %}
-              <div class="class-row">
-                <div class="class-name">
-                  <i style="background: {{ item.color }}"></i>
-                  <span>{{ item.name }}</span>
-                </div>
-                <div class="bar-track">
-                  <div class="bar-fill"
-                       style="width: {{ item.percentage }}%; background: {{ item.color }}"></div>
-                </div>
-                <strong>{{ item.percentage_text }}</strong>
-              </div>
-              {% endfor %}
-            </div>
-          </article>
+        <section class="legend-panel">
+          <div>
+            <p class="eyebrow">LOVEDA PALETTE</p>
+            <h3>统一类别图例</h3>
+          </div>
+          <div class="legend">
+            {% for item in result.legend %}
+            <span><i style="background: {{ item.color }}"></i>{{ item.name }}</span>
+            {% endfor %}
+          </div>
+        </section>
 
-          <aside class="panel legend-panel">
-            <p class="eyebrow">MODEL INFORMATION</p>
-            <h3>模型与图例</h3>
-            <dl>
-              <div><dt>模型</dt><dd>{{ runtime.model }}</dd></div>
-              <div><dt>最佳轮次</dt><dd>Epoch {{ runtime.epoch }}</dd></div>
-              <div><dt>最佳 mIoU</dt><dd>{{ runtime.best }}</dd></div>
-              <div><dt>推理方式</dt><dd>单尺度滑窗</dd></div>
-            </dl>
-            <div class="legend">
-              {% for item in result.classes %}
-              <span><i style="background: {{ item.color }}"></i>{{ item.name }}</span>
-              {% endfor %}
+        <section class="comparison-table-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">MODEL INFORMATION</p>
+              <h3>模型对比信息</h3>
             </div>
-          </aside>
-        </div>
+            <span>Decoder 均为 U-Net 3+ Full-scale Skip Connection</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Backbone</th>
+                  <th>Decoder</th>
+                  <th>特征</th>
+                  <th>Hidden Test mIoU</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for model in runtime.models %}
+                <tr{% if model.final %} class="final-row"{% endif %}>
+                  <td>{{ model.name }}{% if model.final %} <b>FINAL</b>{% endif %}</td>
+                  <td>{{ model.backbone }}</td>
+                  <td>{{ model.decoder }}</td>
+                  <td>{{ model.feature }}</td>
+                  <td>{{ "%.6f"|format(model.test_miou) }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
 
         <div class="notice">
-          <strong>结果说明</strong>
+          <strong>指标说明</strong>
           <p>
-            页面展示的是模型预测，不代表人工标注真值。下载的标签图使用
-            LoveDA 原始编号 1～7；彩色图中的颜色在所有结果中保持一致。
+            页面中的 Hidden Test mIoU 是各模型在 LoveDA 官方隐藏 Test 集上的总体指标，
+            不代表当前上传图片的 IoU。当前图片没有人工 mask，因此只能进行预测结果的定性比较。
           </p>
         </div>
       </section>
@@ -168,15 +211,25 @@
       <section class="workflow">
         <div class="section-heading">
           <div>
-            <p class="eyebrow">HOW IT WORKS</p>
-            <h2>从图片到分割结果</h2>
+            <p class="eyebrow">COMPARISON PROTOCOL</p>
+            <h2>统一协议与顺序推理</h2>
           </div>
         </div>
         <div class="workflow-grid">
-          <article><b>01</b><h3>图像预处理</h3><p>RGB 转换与 ImageNet 标准化，保持原始空间尺寸。</p></article>
-          <article><b>02</b><h3>滑窗推理</h3><p>以 512×512 窗口覆盖整幅影像，对重叠 logits 求平均。</p></article>
-          <article><b>03</b><h3>像素分类</h3><p>在七个地物类别中逐像素选择最高响应类别。</p></article>
-          <article><b>04</b><h3>结果可视化</h3><p>生成固定颜色掩码、透明叠加图与类别占比。</p></article>
+          <article><b>01</b><h3>统一预处理</h3><p>RGB 转换与 ImageNet normalization，保持原始宽高比。</p></article>
+          <article><b>02</b><h3>统一滑窗</h3><p>scale=1.0，{{ runtime.tile }} tile，{{ runtime.stride }} stride，无镜像 TTA。</p></article>
+          <article><b>03</b><h3>顺序加载</h3><p>一次只将一个模型放入 GPU，推理后立即释放显存。</p></article>
+          <article><b>04</b><h3>统一可视化</h3><p>logits 融合后 argmax，四个结果共用同一 LoveDA 颜色表。</p></article>
+        </div>
+
+        <div class="registered-models">
+          {% for model in runtime.models %}
+          <div>
+            <span>{{ "%02d"|format(loop.index) }}</span>
+            <strong>{{ model.name }}</strong>
+            <small>{{ model.test_miou_percent }} · {{ model.feature }}</small>
+          </div>
+          {% endfor %}
         </div>
       </section>
       {% endif %}
@@ -184,7 +237,7 @@
 
     <footer>
       <span>LoveDA U-Net 3+ Semantic Segmentation</span>
-      <span>本地推理 · 图片不会上传到外部服务器</span>
+      <span>本地顺序推理 · 图片不会上传到外部服务器</span>
     </footer>
   </div>
 
@@ -193,17 +246,33 @@
     const fileName = document.getElementById("file-name");
     const form = document.getElementById("upload-form");
     const button = document.getElementById("submit-button");
+    const progress = document.getElementById("progress-message");
 
-    input.addEventListener("change", () => {
+    input.addEventListener("change", function () {
       fileName.textContent = input.files.length
         ? input.files[0].name
         : "或将文件拖放到这里";
     });
 
-    form.addEventListener("submit", () => {
+    form.addEventListener("submit", function () {
       button.disabled = true;
       button.classList.add("loading");
-      button.querySelector(".button-text").textContent = "模型识别中";
+      button.querySelector(".button-text").textContent = "正在运行四个模型";
+      progress.textContent = "正在依次运行 4 个模型，可能需要一定时间，请勿关闭页面";
+      progress.classList.add("active");
+    });
+
+    document.querySelectorAll(".toggle-button").forEach(function (toggle) {
+      toggle.addEventListener("click", function () {
+        const card = toggle.dataset.card;
+        const view = toggle.dataset.view;
+        document.querySelectorAll('.toggle-button[data-card="' + card + '"]').forEach(function (buttonItem) {
+          buttonItem.classList.toggle("active", buttonItem.dataset.view === view);
+        });
+        document.querySelectorAll('.model-view[data-card="' + card + '"]').forEach(function (viewItem) {
+          viewItem.classList.toggle("active", viewItem.dataset.view === view);
+        });
+      });
     });
   </script>
 </body>
